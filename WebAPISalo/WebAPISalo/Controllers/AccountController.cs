@@ -35,7 +35,7 @@ public class AccountController(UserManager<UserEntity> userManager)
     }
 
     [HttpPost]
-    public async Task<IActionResult> Register([FromBody] RegisterModel model)
+    public async Task<IActionResult> Register([FromForm] RegisterModel model)
     {
         var user = new UserEntity
         {
