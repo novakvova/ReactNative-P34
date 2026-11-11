@@ -5,15 +5,18 @@ import {
     TextInput,
     FlatList,
     Pressable,
-    KeyboardAvoidingView,
-    Platform,
     ListRenderItem,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {KeyboardAvoidingView} from "react-native-keyboard-controller";
+import {cssInterop} from "nativewind";
 import {HubConnection, HubConnectionBuilder} from "@microsoft/signalr";
 import {CHAT_HUB_URL} from "@/api/config";
 
-type ConnectionState = "connecting" | "connected" | "disconnected";
+// NativeWind не знає про сторонній компонент — вмикаємо className для нього
+cssInterop(KeyboardAvoidingView, {className: "style"});
+
+type ConnectionState ="connecting" | "connected" | "disconnected";
 
 interface IChatMessage {
     id: string;
@@ -96,11 +99,8 @@ const MyChatScreen = () => {
 
     return (
         <SafeAreaView className="flex-1 bg-slate-100">
-            <KeyboardAvoidingView
-                className="flex-1"
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-            >
+            {/* Піднімає поле вводу над клавіатурою (однаково на iOS і Android з edge-to-edge) */}
+            <KeyboardAvoidingView className="flex-1" behavior="padding">
                 <View className="flex-row items-center justify-between border-b border-slate-200 bg-white px-4 py-4">
                     <Text className="text-xl font-bold text-slate-900">Чат</Text>
                     <View className="flex-row items-center gap-2 rounded-full bg-slate-100 px-3 py-1">
