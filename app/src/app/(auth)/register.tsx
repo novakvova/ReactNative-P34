@@ -4,14 +4,19 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    ScrollView,
-    KeyboardAvoidingView,
-    Platform,
     Keyboard,
     TouchableWithoutFeedback,
     Pressable,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {KeyboardAwareScrollView} from "react-native-keyboard-controller";
+import {cssInterop} from "nativewind";
+
+// NativeWind не знає про сторонній компонент — вмикаємо className для нього
+cssInterop(KeyboardAwareScrollView, {
+    className: "style",
+    contentContainerClassName: "contentContainerStyle",
+});
 import {router} from "expo-router";
 import {Controller, useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
@@ -90,25 +95,21 @@ const RegisterScreen = () => {
             dispatch(loginSuccess(token)); //тут ми логінимо у системі користувача
             router.push("/profile");
         } catch (error) {
+            console.log("Server errror", error);
             setServerError(getApiError(error).message ?? "Не вдалося створити акаунт. Спробуйте ще раз.");
         }
     };
 
     return (
         <SafeAreaView className="flex-1">
-            <KeyboardAvoidingView
+            {/* Прокручує до активного поля, щоб клавіатура його не перекривала */}
+            <KeyboardAwareScrollView
                 className="flex-1"
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+                contentContainerClassName="flex-grow px-6 py-10"
+                keyboardShouldPersistTaps="handled"
+                bottomOffset={24}
+                showsVerticalScrollIndicator={false}
             >
-                <ScrollView
-                    className="flex-1"
-                    contentContainerClassName="flex-grow px-6 py-10"
-                    keyboardShouldPersistTaps="handled"
-                    keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-                    automaticallyAdjustKeyboardInsets
-                    showsVerticalScrollIndicator={false}
-                >
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
                         <View className="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
                             <Text className="mb-2 text-center text-3xl font-bold text-slate-900">
@@ -276,8 +277,7 @@ const RegisterScreen = () => {
                             </TouchableOpacity>
                         </View>
                     </TouchableWithoutFeedback>
-                </ScrollView>
-            </KeyboardAvoidingView>
+            </KeyboardAwareScrollView>
         </SafeAreaView>
     );
 };

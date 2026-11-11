@@ -1,5 +1,6 @@
 import {Stack} from 'expo-router';
 import {SafeAreaProvider} from "react-native-safe-area-context";
+import {KeyboardProvider} from "react-native-keyboard-controller";
 import {Provider} from "react-redux";
 import {store} from "@/store";
 import {useEffect, useState} from "react";
@@ -31,7 +32,9 @@ export default function TabLayout() {
     return (
         <Provider store={store}>
             <SafeAreaProvider>
-                <Stack screenOptions={{headerShown: false}}/>
+                <KeyboardProvider>
+                    <Stack screenOptions={{headerShown: false}}/>
+                </KeyboardProvider>
             </SafeAreaProvider>
         </Provider>
     )

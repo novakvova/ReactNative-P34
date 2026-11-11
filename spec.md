@@ -3,7 +3,7 @@
 Технічна специфікація проєкту: структура, стек, залежності, архітектура, ризики.
 Оновлювати при суттєвих змінах архітектури або стеку.
 
-Останнє оновлення: 2026-11-09.
+Останнє оновлення: 2026-11-11.
 
 ---
 
@@ -160,7 +160,7 @@ Logout:    profile.tsx → SecureStore.delete("token") → dispatch(logout) → 
 
 **Відновлення пароля (клієнт):** `login.tsx` → посилання «Забули пароль?» → `forgot-password.tsx` → `reset-password.tsx` (email передається параметром маршруту). `login.tsx` показує помилку для статусів 400 і 401. Текст береться з поля `error` відповіді.
 
-**Чат (клієнт):** `app/src/app/mychat.tsx`, маршрут `/mychat`. Підключається до `CHAT_HUB_URL` (`src/api/config.ts`), слухає подію `Send`, викликає `Send`. Стан з'єднання показується в шапці (`connecting`, `connected`, `disconnected`). Повідомлення відображаються від нових до старих у `FlatList` з `inverted`.
+**Чат (клієнт):** `app/src/app/mychat.tsx`, маршрут `/mychat`. Підключається до `CHAT_HUB_URL` (`src/api/config.ts`), слухає подію `Send`, викликає `Send`. Стан з'єднання показується в шапці (`connecting`, `connected`, `disconnected`). Повідомлення відображаються від нових до старих у `FlatList` з `inverted`. Вхід у чат — кнопка «Перейти в чат» на `profile.tsx` (`router.replace("/mychat")`). Кнопки повернення з чату немає.
 
 ### 4.2 Бекенд
 
@@ -174,7 +174,9 @@ Logout:    profile.tsx → SecureStore.delete("token") → dispatch(logout) → 
 6. **Документація** — Swagger з Bearer-схемою, XML-коментарі (`GenerateDocumentationFile`).
 7. **Хаб** — `ChatHub` (SignalR), `MapHub<ChatHub>("/chat")`. Метод `Send(string message)` розсилає повідомлення через подію `Send` усім підключеним клієнтам. Автентифікації немає, повідомлення не зберігаються.
 
-**Конвеєр запиту:** `UseSwagger/UseSwaggerUI` → `UseAuthentication` → `UseAuthorization` → `MapControllers`. Статика підключається до цього конвеєра раніше.
+**Конвеєр запиту:** `UseCors` → `MapHub<ChatHub>("/chat")` → статика → `UseSwagger/UseSwaggerUI` → `UseAuthentication` → `UseAuthorization` → `MapControllers`.
+
+**CORS:** політика за замовчуванням дозволяє будь-який origin разом з credentials (`SetIsOriginAllowed(_ => true)`, `AllowAnyHeader`, `AllowAnyMethod`, `AllowCredentials`). Потрібно для SignalR з веб-клієнта.
 
 **Налаштування Identity:** довжина пароля ≥ 6, без інших вимог. Email використовується як `UserName`. `EmailConfirmed = true` (підтвердження пошти не реалізоване).
 
@@ -291,7 +293,7 @@ API має ще одне вихідне з'єднання: SMTP-сервер `sm
 | 4 | **Збереження профілю через `/Register`** | `profile.tsx` | Немає оновлення профілю; запит створить нового користувача або поверне помилку | Додати `PUT /api/Account/Profile` (`[Authorize]`) |
 | 5 | **Hardcoded base URL** | `profile.tsx` (свій URL); login, register і відновлення беруть адресу з `src/api/config.ts` | Зміна хоста вимагає правок у `config.ts` і в `profile.tsx` | Винести в `app.config.ts` / `EXPO_PUBLIC_API_URL` |
 | 6 | **Swagger увімкнений у продакшені** | `Program.cs` | Розкриває повний контракт API | Вмикати лише в Development |
-| 7 | **Немає CORS, HTTPS-редіректу; `RequireHttpsMetadata = false`** | `Program.cs` | Веб-клієнт (`react-native-web`) не працюватиме з іншого origin; JWT може йти по HTTP | Явна CORS-політика; `RequireHttpsMetadata = true` за TLS |
+| 7 | **CORS дозволяє будь-який origin з credentials; немає HTTPS-редіректу; `RequireHttpsMetadata = false`** | `Program.cs` | Будь-який сайт може робити запити до API і хаба від імені браузера користувача; JWT може йти по HTTP | Обмежити `WithOrigins(...)` списком доменів; `RequireHttpsMetadata = true` за TLS |
 | 8 | **Токен не відкликається** | JWT 7 днів без refresh/blacklist. Після `ResetPassword` старі токени також лишаються дійсними, бо `JwtBearer` не перевіряє security stamp | Викрадений токен валідний тиждень | Коротший термін + refresh-токени; перевіряти `SecurityStamp` у `OnTokenValidated` |
 | 9 | **Відсутні тести** | обидва проєкти | Регресії не ловляться | Jest + React Native Testing Library; xUnit + `WebApplicationFactory` |
 | 10 | **Лінт не налаштований** | `app/` | `npm run lint` не працює коректно | Додати ESLint (`eslint-config-expo`) |
