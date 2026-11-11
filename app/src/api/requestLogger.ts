@@ -33,7 +33,9 @@ const formDataToObject = (formData: FormData): Record<string, Loggable> => {
     }
 
     formData.forEach((value, key) => {
-        result[key] = typeof value === "string" ? value : "[File]";
+        result[key] = typeof value === "string"
+            ? value
+            : {name: value.name, type: value.type, size: value.size};
     });
     return result;
 };

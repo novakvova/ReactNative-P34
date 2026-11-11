@@ -1,6 +1,6 @@
 import {createApi} from "@reduxjs/toolkit/query/react";
-import {serialize} from "object-to-formdata";
 import {baseQuery} from "@/api/baseQuery";
+import {toRegisterFormData} from "@/api/formData";
 import {ILoginType} from "@/types/auth/ILoginType";
 import {IRegisterType} from "@/types/auth/IRegisterType";
 import {IForgotPasswordType} from "@/types/auth/IForgotPasswordType";
@@ -19,7 +19,11 @@ export const api = createApi({
             query: (body) => ({url: "Account/Login", method: "POST", body}),
         }),
         register: builder.mutation<IAuthResponse, IRegisterType>({
-            query: (data) => ({url: "Account/Register", method: "POST", body: serialize(data)}),
+            query: (data) => ({
+                url: "Account/Register",
+                method: "POST",
+                body: toRegisterFormData(data),
+            }),
         }),
         forgotPassword: builder.mutation<IMessageResponse, IForgotPasswordType>({
             query: (body) => ({url: "Account/ForgotPassword", method: "POST", body}),

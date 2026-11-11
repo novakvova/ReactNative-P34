@@ -80,7 +80,7 @@ const RegisterScreen = () => {
             name: asset.fileName ?? "photo.jpg",
             type: asset.mimeType ?? "image/jpeg",
         };
-        console.log("Select image",data);
+        // console.log("Select image",data);
         setValue("imageFile",data);
 
     }
@@ -90,6 +90,7 @@ const RegisterScreen = () => {
     const myOnSubmit = async (data: IRegisterType) => {
         setServerError(null);
         try {
+            console.log("Data register", data);
             const {token} = await registerUser(data).unwrap();
             await SecureStore.setItemAsync("token", token);
             dispatch(loginSuccess(token)); //тут ми логінимо у системі користувача

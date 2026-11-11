@@ -94,7 +94,7 @@ const ProfileScreen = () => {
             name: asset.fileName ?? "photo.jpg",
             type: asset.mimeType ?? "image/jpeg",
         };
-        console.log("Select image",data);
+        // console.log("Select image",data);
         setValue("imageFile",data);
 
     }
