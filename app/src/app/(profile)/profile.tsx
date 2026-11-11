@@ -68,6 +68,10 @@ const ProfileScreen = () => {
         router.replace("/login");
     }
 
+    const onGoToMyChat = () => {
+        router.replace("/mychat");
+    }
+
     const pickImage = async () => {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permissionResult) {
@@ -215,6 +219,15 @@ const ProfileScreen = () => {
                                     Оновити профіль
                                 </Text>
                             </Pressable>
+
+                            <TouchableOpacity
+                                onPress={onGoToMyChat}
+                                className="h-14 mb-4 w-full items-center justify-center rounded-xl bg-yellow-600 active:bg-yellow-700"
+                            >
+                                <Text className="text-base font-semibold text-white">
+                                    Перейти в чат
+                                </Text>
+                            </TouchableOpacity>
 
                             <TouchableOpacity
                                 onPress={onLogout}
