@@ -11,6 +11,7 @@ using WebAPISalo.Data;
 using WebAPISalo.Data.Identity;
 using WebAPISalo.Hubs;
 using WebAPISalo.Interfaces;
+using WebAPISalo.Mapper;
 using WebAPISalo.Models.Account;
 using WebAPISalo.Models.Settings;
 using WebAPISalo.Services;
@@ -37,6 +38,10 @@ builder.Services.AddIdentity<UserEntity, RoleEntity>(opt =>
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddSingleton<ChatMapper>();
+builder.Services.AddScoped<IIdentityService, IdentityService>();
+builder.Services.AddScoped<IChatService, ChatService>();
+
 
 builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
 
