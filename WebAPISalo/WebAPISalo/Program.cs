@@ -5,9 +5,11 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SkiaSharp;
 using System.Text;
 using WebAPISalo.Constants;
 using WebAPISalo.Data;
+using WebAPISalo.Data.Chat;
 using WebAPISalo.Data.Identity;
 using WebAPISalo.Hubs;
 using WebAPISalo.Interfaces;
@@ -209,4 +211,16 @@ static async Task SeedIdentityAsync(WebApplication app)
                     string.Join("; ", roleResult.Errors.Select(e => e.Description)));
         }
     }
+    if (!db.ChatTypes.Any())
+    {
+        var types = ChatTypes.All
+            .Select(x => new ChatTypeEntity
+            {
+                Name = x
+            }).ToList();
+
+        db.ChatTypes.AddRange(types);
+        await db.SaveChangesAsync();
+    }
+
 }
