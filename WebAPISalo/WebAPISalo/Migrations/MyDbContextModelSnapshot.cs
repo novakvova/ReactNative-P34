@@ -110,6 +110,144 @@ namespace WebAPISalo.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("WebAPISalo.Data.Chat.ChatEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("ChatTypeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatTypeId");
+
+                    b.ToTable("tblChats");
+                });
+
+            modelBuilder.Entity("WebAPISalo.Data.Chat.ChatMessageEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("ChatId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileUrl")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEdited")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<long?>("ReplyToMessageId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatId");
+
+                    b.HasIndex("ReplyToMessageId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("tblChatMessages");
+                });
+
+            modelBuilder.Entity("WebAPISalo.Data.Chat.ChatMessageReadEntity", b =>
+                {
+                    b.Property<long>("MessageId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("MessageId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("tblChatMessageReads");
+                });
+
+            modelBuilder.Entity("WebAPISalo.Data.Chat.ChatTypeEntity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("tblChatTypes");
+                });
+
+            modelBuilder.Entity("WebAPISalo.Data.Chat.ChatUserEntity", b =>
+                {
+                    b.Property<long>("ChatId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("ChatId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("tblChatUsers");
+                });
+
             modelBuilder.Entity("WebAPISalo.Data.Identity.RoleEntity", b =>
                 {
                     b.Property<long>("Id")
@@ -269,6 +407,80 @@ namespace WebAPISalo.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("WebAPISalo.Data.Chat.ChatEntity", b =>
+                {
+                    b.HasOne("WebAPISalo.Data.Chat.ChatTypeEntity", "ChatType")
+                        .WithMany("Chats")
+                        .HasForeignKey("ChatTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChatType");
+                });
+
+            modelBuilder.Entity("WebAPISalo.Data.Chat.ChatMessageEntity", b =>
+                {
+                    b.HasOne("WebAPISalo.Data.Chat.ChatEntity", "Chat")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WebAPISalo.Data.Chat.ChatMessageEntity", "ReplyToMessage")
+                        .WithMany()
+                        .HasForeignKey("ReplyToMessageId");
+
+                    b.HasOne("WebAPISalo.Data.Identity.UserEntity", "User")
+                        .WithMany("Messages")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chat");
+
+                    b.Navigation("ReplyToMessage");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WebAPISalo.Data.Chat.ChatMessageReadEntity", b =>
+                {
+                    b.HasOne("WebAPISalo.Data.Chat.ChatMessageEntity", "Message")
+                        .WithMany("MessageReads")
+                        .HasForeignKey("MessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WebAPISalo.Data.Identity.UserEntity", "User")
+                        .WithMany("MessageReads")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Message");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("WebAPISalo.Data.Chat.ChatUserEntity", b =>
+                {
+                    b.HasOne("WebAPISalo.Data.Chat.ChatEntity", "Chat")
+                        .WithMany("ChatUsers")
+                        .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("WebAPISalo.Data.Identity.UserEntity", "User")
+                        .WithMany("ChatUsers")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chat");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("WebAPISalo.Data.Identity.UserRoleEntity", b =>
                 {
                     b.HasOne("WebAPISalo.Data.Identity.RoleEntity", "Role")
@@ -288,6 +500,23 @@ namespace WebAPISalo.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("WebAPISalo.Data.Chat.ChatEntity", b =>
+                {
+                    b.Navigation("ChatUsers");
+
+                    b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("WebAPISalo.Data.Chat.ChatMessageEntity", b =>
+                {
+                    b.Navigation("MessageReads");
+                });
+
+            modelBuilder.Entity("WebAPISalo.Data.Chat.ChatTypeEntity", b =>
+                {
+                    b.Navigation("Chats");
+                });
+
             modelBuilder.Entity("WebAPISalo.Data.Identity.RoleEntity", b =>
                 {
                     b.Navigation("UserRoles");
@@ -295,6 +524,12 @@ namespace WebAPISalo.Migrations
 
             modelBuilder.Entity("WebAPISalo.Data.Identity.UserEntity", b =>
                 {
+                    b.Navigation("ChatUsers");
+
+                    b.Navigation("MessageReads");
+
+                    b.Navigation("Messages");
+
                     b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
