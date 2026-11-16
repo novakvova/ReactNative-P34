@@ -51,20 +51,21 @@ dotnet ef migrations add <Name> --project WebAPISalo/WebAPISalo   # EF Tools are
 - Routing is Expo Router, file-based under `app/src/app/`. Groups: `(auth)` (login, register), `(profile)` (profile). `index.tsx` redirects to `/profile` if a user is in Redux, otherwise to `/login`.
 - Session state: Redux Toolkit store in `src/store/index.ts`, one slice `auth` in `src/store/reducers/AuthSlice.ts`. The slice stores the decoded JWT claims plus the raw `token`.
 - Token persistence: `expo-secure-store` under the key `"token"`. The root `src/app/_layout.tsx` reads it on startup and dispatches `loginSuccess`. Login and logout write and clear the same key. The root layout's `useEffect` has no dependency array, so it re-runs on every render. Keep that in mind before adding logic there.
-- The base URL is `API_BASE_URL` in `src/api/config.ts` (`https://salo.itstep.click`). All auth endpoints (login, register, forgot and reset password) are RTK Query mutations in `src/api/apiSlice.ts`. `profile.tsx` still hardcodes `https://salo.itstep.click/api/...`; move it to `API_BASE_URL` when you touch that screen. There is no env-based config.
+- The base URL is `API_BASE_URL` in `src/api/config.ts` (`https://salo.itstep.click`). All auth endpoints (login, register, forgot and reset password) are RTK Query mutations in `src/api/apiSlice.ts`. `profile.tsx` uses `API_BASE_URL` only for avatar URLs and makes no network calls. The chat hub URL is `CHAT_HUB_URL` in the same file. There is no env-based config.
 - Auth requests: `src/api/baseQuery.ts` (`fetchBaseQuery`, adds `Authorization: Bearer` from `state.auth.user.token`). The `api` reducer and middleware are in `src/store/index.ts`. Use `getApiError` from `src/api/apiErrors.ts` to read the status and `error` text from RTK errors.
 - Forms use react-hook-form with zod schemas in `src/schemas/`, wired through `@hookform/resolvers/zod`. Styling is NativeWind (Tailwind classes via `className`); the global stylesheet is `src/global.css`.
-- `profile.tsx` posts to `/api/Account/Register` (not an update endpoint), because the backend has no profile-update endpoint.
-- Chat: `app/src/app/mychat.tsx` (route `/mychat`) connects with `@microsoft/signalr` to `CHAT_HUB_URL` (`src/api/config.ts`), listens for the `Send` event and invokes `Send`. Messages are shown newest-first in an inverted `FlatList`. The route is not behind login. `profile.tsx` has a «Перейти в чат» button (`router.replace("/mychat")`); `mychat.tsx` has no way back.
+- `profile.tsx` save is a stub: the old call to `/api/Account/Register` is commented out, and the backend has no profile-update endpoint yet.
+- Chat: `app/src/app/mychat.tsx` (route `/mychat`) connects with `@microsoft/signalr` to `CHAT_HUB_URL` (`src/api/config.ts`), listens for the `Send` event and invokes `Send`. Messages are shown newest-first in an inverted `FlatList`. The route is not behind login. `profile.tsx` has a «Перейти в чат» button (`router.replace("/mychat")`); `mychat.tsx` has no way back. `mychat.tsx` still uses the anonymous `ChatHub` at `/chat`; the DB-backed `MyChatHub` at `/hub/chat` is not used by the client yet. `app/src/app/chat/_layout.tsx` is the layout of a `chat/` route group with no screens yet. `src/api/requestLogger.ts` logs HTTP only in `__DEV__` and masks secrets.
 - Password recovery: `(auth)/forgot-password.tsx` → `(auth)/reset-password.tsx` (email passed as a route param). Both use the RTK mutations from `src/api/apiSlice.ts`. `login.tsx` links to forgot-password and shows errors for statuses 400 and 401.
 
 ### Backend
 
-- ASP.NET Core controllers with routes `api/[controller]/[action]`. Currently one real controller: `Controllers/AccountController.cs` (`Login`, `Register`, `GetAll`, `ForgotPassword`, `ResetPassword`). `WeatherForecastController` is template leftover.
+- Controllers: `Controllers/AccountController.cs` uses `api/[controller]/[action]` (`Login`, `Register`, `GetAll`, `ForgotPassword`, `ResetPassword`). `Controllers/ChatsController.cs` is `[Authorize]` at `api/Chats` with per-method routes (`POST /`, `PUT edit`, `GET types|users|my|{chatId}/messages|am-i-admin`, `POST invite-link`), so do not assume the action-name pattern there. `WeatherForecastController` is template leftover.
 - Identity: `AddIdentity<UserEntity, RoleEntity>` on EF Core with Npgsql (PostgreSQL). Keys are `long`. Password policy is minimal (length 6, no other rules).
-- Auth: JWT bearer. `JwtTokenService` issues HS256 tokens valid for 7 days, with claims `email`, `name` (`"{LastName} {FirstName}"`), `image`, and one `roles` claim per role. The client decodes these claims directly, so renaming a claim breaks the app's user object.
-- Roles come from `Constants/Roles.cs` (`Admin`, `User`). `SeedIdentityAsync` creates them and seed users `admin@gmail.com` / `user@gmail.com` when the Users table is empty. The seed code runs only once per empty database.
-- Hub: `Hubs/ChatHub.cs` (`Send(string)` broadcasts to all clients), mapped at `/chat`. Messages are not stored and carry no sender.
+- Auth: JWT bearer. `JwtTokenService` issues HS256 tokens valid for 7 days, with claims `email`, `name` (`"{LastName} {FirstName}"`), `image`, and one `roles` claim per role. The client decodes these claims directly, so renaming a claim breaks the app's user object. `IdentityService` (used by chat) reads the email from the first claim (`Claims.First()`), so keep `email` as the first claim.
+- Roles come from `Constants/Roles.cs` (`Admin`, `User`). `SeedIdentityAsync` creates them and seed users `admin@gmail.com` / `user@gmail.com` when the Users table is empty. It also seeds `tblChatTypes` (`Private`, `Group`) when that table is empty. The seed code runs only once per empty database.
+- Hubs: `Hubs/ChatHub.cs` (`Send(string)` broadcasts to all clients), mapped at `/chat`. Messages are not stored and carry no sender. `Hubs/MyChatHub.cs` is mapped at `/hub/chat`: `JoinChat`, `SendMessage` (saves to DB, sends `ReceiveMessage` to group `chat-{id}`), `LeaveChat`. It has no `[Authorize]` yet.
+- Chat data: `Data/Chat/*` (`tblChatTypes`, `tblChats`, `tblChatUsers`, `tblChatMessages`, `tblChatMessageReads`). Services `ChatService` (`IChatService`) and `IdentityService` (`IIdentityService`) are Scoped; `ChatMapper` (Mapperly) is a Singleton. `Services/InviteTokenService.cs` is the exception to the DI rule: no interface, not registered, hardcoded secret. Do not copy that pattern.
 - CORS: default policy in `Program.cs` allows any origin with credentials (`SetIsOriginAllowed(_ => true)` + `AllowCredentials`). `app.UseCors()` runs before `MapHub`.
 - Images: `Services/ImageService.cs` compresses uploads with SkiaSharp and saves them under `ImagesDir` (default `images/`). That folder is served statically at `/images`. The path is resolved from the current working directory, so run the app from the project folder.
 - Config: `appsettings.json` has the JWT key, empty `ConnectionStrings:DefaultConnection`, `ImagesDir`, `ImageSizes` and the `Smtp` section (`Host`, `Port`, `UserName`, `Password`). In Docker, the connection string comes from the env var `ConnectionStrings__DefaultConnection` (see `salo.itstep.click/docker-compose.yml`). Keep secrets in env vars (`Smtp__Password`, `Jwt__Key`), not in the file.
@@ -87,7 +88,7 @@ dotnet ef migrations add <Name> --project WebAPISalo/WebAPISalo   # EF Tools are
 - Redux: лише типізовані хуки `useAppDispatch` / `useAppSelector` з `@/store`, не напряму з `react-redux`.
 - Стилі для нового коду — NativeWind (`className`), не `StyleSheet`.
 - Токен зберігати тільки в `expo-secure-store`. Не використовувати AsyncStorage чи localStorage.
-- Не логувати паролі, токени та вміст форм. У наявних `console.log` у `login.tsx` і `profile.tsx` це порушено, тому не копіювати такі рядки.
+- Не логувати паролі, токени та вміст форм. У `profile.tsx` є `console.log` з даними форми (порушення, не копіювати). `login.tsx` вже без логів.
 - Не змінювати claim-и JWT (`email`, `name`, `roles`, `image`, `exp`) без синхронної зміни `IUser`.
 
 Бекенд (`WebAPISalo/`):
@@ -107,7 +108,7 @@ dotnet ef migrations add <Name> --project WebAPISalo/WebAPISalo   # EF Tools are
 
 - Клієнт: екрани тільки в `src/app/`. Некомпонентний код (API, утиліти) — поза `src/app/`. Компоненти в `src/components/` не звертаються напряму до мережі.
 - Клієнт: стан сесії — тільки в Redux (`auth`). Не дублювати `user` або `token` у `useState` екрана.
-- Клієнт: нові HTTP-виклики має йти через один модуль з базовим URL (наприклад `src/api/`), а не через захардкоджений рядок у екрані. Логін, реєстрація і відновлення пароля вже йдуть через RTK Query (`src/api/apiSlice.ts`). `profile.tsx` ще робить прямий виклик; переписати його під час зміни, а не окремою задачею.
+- Клієнт: нові HTTP-виклики має йти через один модуль з базовим URL (наприклад `src/api/`), а не через захардкоджений рядок у екрані. Логін, реєстрація і відновлення пароля вже йдуть через RTK Query (`src/api/apiSlice.ts`). `profile.tsx` уже не робить прямих викликів; коли додаватимемо збереження профілю, йти через `apiSlice.ts`.
 - Бекенд: шар `Controllers → Interfaces → Services → Data`. Логіку пишемо в сервісі, контролер тримаємо тонким. Поточний `AccountController` напряму використовує `UserManager`; для нових дій так само прийнятно, але бізнес-логіку в контролер не додавати.
 - Бекенд: зміна моделі Identity або `MyDbContext` — тільки разом з `dotnet ef migrations add`. Застосовані міграції не редагувати.
 - Зображення: завжди через `IImageService`. Не писати файли напряму з контролерів.
@@ -140,3 +141,5 @@ dotnet ef migrations add <Name> --project WebAPISalo/WebAPISalo   # EF Tools are
 - `ForgotPassword` always returns 200, even for an unknown email. Don't use its status to check whether a user exists.
 - `Login` returns 401 for wrong credentials, not 400. The client handles both.
 - `Register` returns the error under the key `erroor`, so `getApiError` finds no message and the UI shows the fallback text.
+- `ChatsController` needs a valid JWT; `IdentityService` looks up the user by the first claim (`email`). Changing the claim order breaks chat.
+- `app/src/app/(profile)/create.tsx`, `home.tsx`, `join.tsx` are empty (0 bytes) files. They sit under `src/app/`, so they are routes with no content. Do not link to them until they are written.
