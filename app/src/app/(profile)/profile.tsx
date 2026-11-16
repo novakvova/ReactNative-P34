@@ -53,7 +53,7 @@ const ProfileScreen = () => {
 
     useEffect(() => {
         if (user) {
-            console.log("User Info", user)
+            // console.log("User Info", user)
             reset({
                 name: user.name,
                 email: user.email ?? "",
@@ -107,21 +107,21 @@ const ProfileScreen = () => {
 
     }
 
-    const url = "https://salo.itstep.click/api/Account/Register";
+    // const url = "https://salo.itstep.click/api/Account/Register";
 
     const myOnSubmit = async (data: IProfileType) => {
         try {
-            console.log("Register user ", data);
-            const formData = serialize(data);
-            const result = await axios.post(url, formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    }
-                });
-            console.log("Успіх status", result.status);
-            console.log("Успіх data", result.data);
-            router.replace("/login");
+            console.log("Update profile user ", data);
+            // const formData = serialize(data);
+            // const result = await axios.post(url, formData,
+            //     {
+            //         headers: {
+            //             "Content-Type": "multipart/form-data",
+            //         }
+            //     });
+            // console.log("Успіх status", result.status);
+            // console.log("Успіх data", result.data);
+            // router.replace("/login");
         } catch (error) {
             console.log("Помилка", error);
         }
