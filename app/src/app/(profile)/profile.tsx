@@ -80,6 +80,10 @@ const ProfileScreen = () => {
         router.replace("/mychat");
     }
 
+    const onGoBackToChat = () => {
+        router.replace("/chat/home");
+    }
+
     const pickImage = async () => {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permissionResult) {
@@ -129,6 +133,18 @@ const ProfileScreen = () => {
 
     return (
         <SafeAreaView className="flex-1">
+            {/* Назад — до головної сторінки чату */}
+            <View className="px-6 pt-4">
+                <Pressable
+                    onPress={onGoBackToChat}
+                    accessibilityRole="button"
+                    accessibilityLabel="Назад до головної сторінки чату"
+                    className="flex-row items-center gap-2 self-start rounded-full border border-indigo-100 bg-white px-4 py-2.5 shadow-sm active:bg-indigo-50"
+                >
+                    <Text className="text-base font-semibold text-indigo-700"> {"<- Назад до чату"}</Text>
+                </Pressable>
+            </View>
+
             <KeyboardAvoidingView
                 className="flex-1"
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

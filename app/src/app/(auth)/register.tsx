@@ -94,7 +94,7 @@ const RegisterScreen = () => {
             const {token} = await registerUser(data).unwrap();
             await SecureStore.setItemAsync("token", token);
             dispatch(loginSuccess(token)); //тут ми логінимо у системі користувача
-            router.push("/profile");
+            router.push("/chat/home");
         } catch (error) {
             console.log("Server errror", error);
             setServerError(getApiError(error).message ?? "Не вдалося створити акаунт. Спробуйте ще раз.");

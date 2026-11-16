@@ -53,7 +53,7 @@ const LoginScreen = () => {
             const {token} = await loginUser(data).unwrap();
             await SecureStore.setItemAsync("token", token);
             dispatch(loginSuccess(token)); //тут ми логінимо у системі користувача
-            router.push("/profile");
+            router.push("/chat/home");
 
             // console.log("Усіх data", token);
         }

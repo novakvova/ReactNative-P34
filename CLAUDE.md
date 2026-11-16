@@ -142,4 +142,4 @@ dotnet ef migrations add <Name> --project WebAPISalo/WebAPISalo   # EF Tools are
 - `Login` returns 401 for wrong credentials, not 400. The client handles both.
 - `Register` returns the error under the key `erroor`, so `getApiError` finds no message and the UI shows the fallback text.
 - `ChatsController` needs a valid JWT; `IdentityService` looks up the user by the first claim (`email`). Changing the claim order breaks chat.
-- `app/src/app/(profile)/create.tsx`, `home.tsx`, `join.tsx` are empty (0 bytes) files. They sit under `src/app/`, so they are routes with no content. Do not link to them until they are written.
+- `app/src/app/chat/home.tsx` is the chat home (user card from Redux, buttons to `/chat/create` and `/chat/join`, settings to `/profile`). `chat/create.tsx` and `chat/join.tsx` are placeholder screens, not implemented yet.
