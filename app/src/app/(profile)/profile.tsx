@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {
     View,
     Text,
@@ -24,6 +24,7 @@ import * as SecureStore from "expo-secure-store";
 import {logout} from "@/store/reducers/AuthSlice";
 import {IProfileType} from "@/types/profile/IProfileType";
 import {ProfileSchema} from "@/schemas/ProfileSchema";
+import {API_BASE_URL} from "@/api/config";
 
 const inputClass =
     "mb-2 h-14 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 text-base text-slate-900 focus:border-indigo-500 focus:bg-white";
@@ -31,6 +32,7 @@ const inputClass =
 const ProfileScreen = () => {
 
     const {user} = useAppSelector(state => state.auth);
+    const [currentImage, setCurrentImage] = useState<string|null>(null);
 
     const defaultValue: IProfileType = {
         name: "",
@@ -51,10 +53,16 @@ const ProfileScreen = () => {
 
     useEffect(() => {
         if (user) {
+            console.log("User Info", user)
             reset({
                 name: user.name,
                 email: user.email ?? "",
             });
+
+            if(user.image)
+            {
+                setCurrentImage(`${API_BASE_URL}/images/${user.image}_432.webp`);
+            }
         }
     }, [user, reset]);
 
@@ -143,7 +151,7 @@ const ProfileScreen = () => {
                             {/* Фото: до вибору — значок камери, після — саме фото в колі */}
                             <View className="mb-6 items-center">
                                 <ImagePickerButton
-                                    imageUri={image?.uri ?? null}
+                                    imageUri={image?.uri ?? currentImage}
                                     onPress={pickImage}
                                 />
                                 <Text className="mt-2 text-sm text-slate-500">
