@@ -14,6 +14,8 @@ export interface IMessageResponse {
 export const api = createApi({
     reducerPath: "api",
     baseQuery,
+    // Теги для інвалідації кешу чату (ендпоінти — у chatApiSlice.ts)
+    tagTypes: ["ChatTypes", "MyChats", "ChatMessages"],
     endpoints: (builder) => ({
         login: builder.mutation<IAuthResponse, ILoginType>({
             query: (body) => ({url: "Account/Login", method: "POST", body}),

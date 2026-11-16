@@ -33,14 +33,14 @@ ReactNative-P34/
 │   │   ├── index.tsx         # Редірект: /profile або /login
 │   │   ├── (auth)/login.tsx, register.tsx, forgot-password.tsx, reset-password.tsx
 │   │   ├── (profile)/profile.tsx, _layout.tsx
-│   │   ├── chat/_layout.tsx  # Група чату: KeyboardAwareScrollView + Stack (екранів ще немає)
+│   │   ├── chat/            # Група чату: _layout.tsx (KeyboardAwareScrollView + Stack), home.tsx (головна після входу), create.tsx і join.tsx (заглушки)
 │   │   ├── mychat.tsx        # Чат через SignalR (хаб /chat, ChatHub)
 │   │   └── explore.tsx       # Залишок шаблону Expo
 │   ├── src/store/            # Redux Toolkit: store + AuthSlice
 │   ├── src/schemas/          # zod-схеми форм (Login, Register, Profile, ForgotPassword, ResetPassword)
 │   ├── src/api/              # config.ts (API_BASE_URL), baseQuery.ts, apiSlice.ts (RTK Query: login, register, forgotPassword, resetPassword), apiErrors.ts
-│   ├── src/types/            # TypeScript-інтерфейси (IUser, IAuthResponse, ...)
-│   ├── src/components/       # UI-компоненти (частина — шаблон Expo)
+│   ├── src/types/            # TypeScript-інтерфейси: IUser, auth/, profile/, common/, chat/ (IChatCreate, IChatEdit, IChatListItem, IChatType, IMessageItem, IUserSearch, IUserShort)
+│   ├── src/components/       # UI-компоненти (частина — шаблон Expo); form/ImagePickerButton.tsx
 │   ├── src/hooks/, constants/, global.css
 │   ├── app.json, babel.config.js, metro.config.js, tailwind.config.js, tsconfig.json
 │   ├── AGENTS.md             # Правила для AI-агентів щодо Expo/EAS
@@ -143,7 +143,7 @@ ReactNative-P34/
 2. **Стан** — один Redux-слайс `auth` (`AuthSlice.ts`). Зберігає декодовані JWT-claims (`IUser`) разом із сирим `token`.
 3. **Персистентність** — токен у `expo-secure-store` під ключем `"token"`. Відновлення сесії — у кореневому `_layout.tsx` при старті (dispatch `loginSuccess`).
 4. **Форми** — react-hook-form з zod-валідацією (`src/schemas/`).
-5. **Мережа** — RTK Query (`src/api/apiSlice.ts`, endpoints `login`, `register`, `forgotPassword`, `resetPassword`) на базовому запиті `src/api/baseQuery.ts`. Базовий запит додає `Authorization`, якщо користувач увійшов. Базова адреса — `API_BASE_URL` у `src/api/config.ts`. `profile.tsx` не робить запитів: аватар формується з `API_BASE_URL`, збереження профілю ще не реалізоване (submit — заглушка). `src/api/requestLogger.ts` логує HTTP лише в `__DEV__` і маскує паролі, токени та коди.
+5. **Мережа** — RTK Query (`src/api/apiSlice.ts`, endpoints `login`, `register`, `forgotPassword`, `resetPassword`) на базовому запиті `src/api/baseQuery.ts`. Чат — `src/api/chatApiSlice.ts` (`api.injectEndpoints`, ендпоінти `/api/Chats/*`: типи, мої чати, створення, редагування, пошук користувачів, повідомлення, перевірка адміна, invite-посилання; теги `ChatTypes`, `MyChats`, `ChatMessages`). Повідомлення в реальному часі йдуть через SignalR, не через цей сервіс. Базовий запит додає `Authorization`, якщо користувач увійшов. Базова адреса — `API_BASE_URL` у `src/api/config.ts`. `profile.tsx` не робить запитів: аватар формується з `API_BASE_URL`, збереження профілю ще не реалізоване (submit — заглушка). `src/api/requestLogger.ts` логує HTTP лише в `__DEV__` і маскує паролі, токени та коди.
 6. **Стилі** — NativeWind: класи Tailwind через `className`; кольори в основному `slate`/`indigo`.
 
 **Потік автентифікації:**
@@ -153,7 +153,7 @@ Login.tsx ──POST /api/Account/Login {email,password}──▶ API
           ◀──────────── 200 { token } ──────────────────
           SecureStore.set("token", token)
           dispatch(loginSuccess(token))  → decode JWT → state.auth.user
-          router.push("/profile")
+          router.push("/chat/home")          (register.tsx — так само)
 
 App start: _layout.tsx → SecureStore.get("token") → dispatch(loginSuccess)
 Logout:    profile.tsx → SecureStore.delete("token") → dispatch(logout) → /login
@@ -163,14 +163,14 @@ Logout:    profile.tsx → SecureStore.delete("token") → dispatch(logout) → 
 
 **Відновлення пароля (клієнт):** `login.tsx` → посилання «Забули пароль?» → `forgot-password.tsx` → `reset-password.tsx` (email передається параметром маршруту). `login.tsx` показує помилку для статусів 400 і 401. Текст береться з поля `error` відповіді.
 
-**Чат (клієнт):** `app/src/app/mychat.tsx`, маршрут `/mychat`. Підключається до `CHAT_HUB_URL` (`src/api/config.ts`), слухає подію `Send`, викликає `Send`. Стан з'єднання показується в шапці (`connecting`, `connected`, `disconnected`). Повідомлення відображаються від нових до старих у `FlatList` з `inverted`. Вхід у чат — кнопка «Перейти в чат» на `profile.tsx` (`router.replace("/mychat")`). Кнопки повернення з чату немає. Клієнт досі підключений до `/chat`; `MyChatHub` на `/hub/chat` клієнтом ще не використовується. Екран `app/src/app/chat/home.tsx` — головна чату: картка користувача з Redux (фото, ім'я, email), привітання, кнопки «Створити новий чат» (`/chat/create`) і «Додатися в чат» (`/chat/join`), кнопка налаштувань ліворуч вгорі (`/profile`). `chat/create.tsx` і `chat/join.tsx` — заглушки («ще в розробці»).
+**Чат (клієнт):** `app/src/app/mychat.tsx`, маршрут `/mychat`. Підключається до `CHAT_HUB_URL` (`src/api/config.ts`), слухає подію `Send`, викликає `Send`. Стан з'єднання показується в шапці (`connecting`, `connected`, `disconnected`). Повідомлення відображаються від нових до старих у `FlatList` з `inverted`. Після входу і реєстрації користувач потрапляє на `/chat/home`. Звідти — кнопка налаштувань (`/profile`). На `profile.tsx` є «← Назад до чату» (`router.replace("/chat/home")`) і «Перейти в чат» (`router.replace("/mychat")`). На `mychat.tsx` кнопки повернення немає. Клієнт досі підключений до `/chat`; `MyChatHub` на `/hub/chat` клієнтом ще не використовується. Екран `app/src/app/chat/home.tsx` — головна чату: картка користувача з Redux (фото, ім'я, email), привітання, кнопки «Створити новий чат» (`/chat/create`) і «Додатися в чат» (`/chat/join`), кнопка налаштувань ліворуч вгорі (`/profile`). `chat/create.tsx` і `chat/join.tsx` — заглушки («ще в розробці»).
 
 ### 4.2 Бекенд
 
 **Шари:**
 
 1. **Контролери** — `AccountController` з маршрутами `api/Account/{Login|Register|GetAll|ForgotPassword|ResetPassword}`; `ChatsController` (`api/Chats`, `[Authorize]`) для чатів: створення, редагування, типи, пошук користувачів, мої чати, повідомлення, перевірка адміна, invite-посилання.
-2. **Сервіси** — `JwtTokenService` (видача токена), `ImageService` (обробка зображень), `EmailService` (SMTP через MailKit). Реєструються як `Scoped`, інтерфейси в `Interfaces/`. Чат: `ChatService` (`IChatService`), `IdentityService` (`IIdentityService`, бере email з першого claim-а), `ChatMapper` (Singleton, Mapperly). `InviteTokenService` без інтерфейсу і без реєстрації в DI, створюється через `new` (див. ризик #27). `SmtpSettings` прив'язується через `IOptions` у `Program.cs`.
+2. **Сервіси** — `JwtTokenService` (видача токена), `ImageService` (обробка зображень), `EmailService` (SMTP через MailKit). Реєструються як `Scoped`, інтерфейси в `Interfaces/`. Чат: `ChatService` (`IChatService`), `IdentityService` (`IIdentityService`, бере email з першого claim-а), `ChatMapper` (Singleton, Mapperly). `InviteTokenService` без інтерфейсу і без реєстрації в DI, створюється через `new` у `ChatsController` (див. ризик #28). `IdentityService` залежить від `IHttpContextAccessor`, а в `Program.cs` його не зареєстровано (ризик #31). `SmtpSettings` прив'язується через `IOptions` у `Program.cs`.
 3. **Ідентичність** — `UserManager`/`RoleManager` ASP.NET Identity; сутності `UserEntity : IdentityUser<long>`, `RoleEntity`, `UserRoleEntity`.
 4. **Персистентність** — `MyDbContext : IdentityDbContext<…, long, …>` з PostgreSQL. Міграції застосовуються при старті.
 5. **Статика** — `images/` віддається за `/images` через `UseStaticFiles`.
@@ -339,7 +339,10 @@ API має ще одне вихідне з'єднання: SMTP-сервер `sm
 | 27 | **`/hub/chat` без надійної автентифікації** | `MyChatHub`, `IdentityService` | Немає `[Authorize]`. `IdentityService` бере email з `HttpContext.User`, а в хабі той може бути недоступний (потребує перевірки). JWT для WebSocket не передається (немає `OnMessageReceived` з токеном із query) | `[Authorize]` на хабі, JWT через query для SignalR, ідентифікація через `Context.User` |
 | 28 | **Секрет invite-токенів зашитий у коді** | `Services/InviteTokenService.cs` (`Secret = "SUPER_SECRET_KEY_CHANGE_ME"`) | Будь-хто з доступом до репо може підробити invite-токен. Сервіс без інтерфейсу, не в DI, без терміну дії. `Validate` ще ніде не використовується | Секрет у конфіг/env, `IInviteTokenService` з DI, термін дії в токені |
 | 29 | **Список усіх користувачів без обмежень** | `ChatsController.GetUsers` → `ChatService.GetAllUsersAsync` | Будь-який автентифікований користувач бачить `Id` і ПІБ усіх користувачів (порожній пошук повертає всіх) | Мінімальна довжина запиту, ліміт результатів, пошук лише по контактах |
-| 30 | **Invite-посилання зі схемою `my-android://`** | `ChatsController.GenerateInvite` | Схема (назва з Android-шаблону) не перевірена на відповідність клієнту `app/`; прийом запрошення ще не реалізовано (`join.tsx` порожній) | Узгодити схему з клієнтом, реалізувати прийом у `app/` |
+| 30 | **Invite-посилання зі схемою `my-android://`** | `ChatsController.GenerateInvite` | Схема (назва з Android-шаблону) не перевірена на відповідність клієнту `app/`; прийом запрошення ще не реалізовано (`chat/join.tsx` — заглушка) | Узгодити схему з клієнтом, реалізувати прийом у `app/` |
+| 31 | **`IHttpContextAccessor` не зареєстровано (висока, додано пізніше)** | `Program.cs` (немає `AddHttpContextAccessor()`), `IdentityService` | `IdentityService` вимагає `IHttpContextAccessor`, а `ChatService` і `ChatsController` залежать від `IdentityService`. Очікується помилка DI при створенні контролера: усі `/api/Chats/*` повертатимуть 500. Перевірити запуском | Додати `builder.Services.AddHttpContextAccessor()` у `Program.cs` і покрити тестом |
+
+Рядок #31 додано після сортування; решта рядків відсортовані за серйозністю.
 
 ---
 
