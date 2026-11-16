@@ -127,6 +127,8 @@ app.UseCors();
 
 app.MapHub<ChatHub>("/chat");
 
+app.MapHub<MyChatHub>("/hub/chat");
+
 try
 {
     var myImage = builder.Configuration.GetRequiredSection("ImagesDir").Get<string>() ?? "myimages";
