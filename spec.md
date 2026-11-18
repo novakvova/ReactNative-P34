@@ -3,7 +3,7 @@
 Технічна специфікація проєкту: структура, стек, залежності, архітектура, ризики.
 Оновлювати при суттєвих змінах архітектури або стеку.
 
-Останнє оновлення: 2026-11-16.
+Останнє оновлення: 2026-11-18.
 
 ---
 
@@ -30,16 +30,16 @@ ReactNative-P34/
 ├── app/                      # Expo-клієнт
 │   ├── src/app/              # Expo Router (файлові маршрути)
 │   │   ├── _layout.tsx       # Кореневий layout: відновлення сесії, Redux Provider
-│   │   ├── index.tsx         # Редірект: /profile або /login
+│   │   ├── index.tsx         # Редірект: /chat/home або /login
 │   │   ├── (auth)/login.tsx, register.tsx, forgot-password.tsx, reset-password.tsx
 │   │   ├── (profile)/profile.tsx, _layout.tsx
-│   │   ├── chat/            # Група чату: _layout.tsx (KeyboardAwareScrollView + Stack), home.tsx (головна після входу), create.tsx і join.tsx (заглушки)
+│   │   ├── chat/            # Група чату: _layout.tsx (KeyboardAwareScrollView + Stack), home.tsx (головна після входу), create.tsx (UI-заглушка, викликає chatApiSlice), join.tsx (заглушка)
 │   │   ├── mychat.tsx        # Чат через SignalR (хаб /chat, ChatHub)
 │   │   └── explore.tsx       # Залишок шаблону Expo
 │   ├── src/store/            # Redux Toolkit: store + AuthSlice
 │   ├── src/schemas/          # zod-схеми форм (Login, Register, Profile, ForgotPassword, ResetPassword)
-│   ├── src/api/              # config.ts (API_BASE_URL), baseQuery.ts, apiSlice.ts (RTK Query: login, register, forgotPassword, resetPassword), apiErrors.ts
-│   ├── src/types/            # TypeScript-інтерфейси: IUser, auth/, profile/, common/, chat/ (IChatCreate, IChatEdit, IChatListItem, IChatType, IMessageItem, IUserSearch, IUserShort)
+│   ├── src/api/              # config.ts (API_BASE_URL, CHAT_HUB_URL), baseQuery.ts, apiSlice.ts (RTK Query: login, register, forgotPassword, resetPassword), chatApiSlice.ts (чат, /api/Chats/*), apiErrors.ts, formData.ts, requestLogger.ts
+│   ├── src/types/            # TypeScript-інтерфейси: IUser, auth/, profile/, common/, chat/ (IChatCreate, IChatEdit, IChatListItem, IChatType, IInviteLink, IInviteRequest, IMessageItem, IUserSearch, IUserShort)
 │   ├── src/components/       # UI-компоненти (частина — шаблон Expo); form/ImagePickerButton.tsx
 │   ├── src/hooks/, constants/, global.css
 │   ├── app.json, babel.config.js, metro.config.js, tailwind.config.js, tsconfig.json
@@ -163,7 +163,7 @@ Logout:    profile.tsx → SecureStore.delete("token") → dispatch(logout) → 
 
 **Відновлення пароля (клієнт):** `login.tsx` → посилання «Забули пароль?» → `forgot-password.tsx` → `reset-password.tsx` (email передається параметром маршруту). `login.tsx` показує помилку для статусів 400 і 401. Текст береться з поля `error` відповіді.
 
-**Чат (клієнт):** `app/src/app/mychat.tsx`, маршрут `/mychat`. Підключається до `CHAT_HUB_URL` (`src/api/config.ts`), слухає подію `Send`, викликає `Send`. Стан з'єднання показується в шапці (`connecting`, `connected`, `disconnected`). Повідомлення відображаються від нових до старих у `FlatList` з `inverted`. Після входу і реєстрації користувач потрапляє на `/chat/home`. Звідти — кнопка налаштувань (`/profile`). На `profile.tsx` є «← Назад до чату» (`router.replace("/chat/home")`) і «Перейти в чат» (`router.replace("/mychat")`). На `mychat.tsx` кнопки повернення немає. Клієнт досі підключений до `/chat`; `MyChatHub` на `/hub/chat` клієнтом ще не використовується. Екран `app/src/app/chat/home.tsx` — головна чату: картка користувача з Redux (фото, ім'я, email), привітання, кнопки «Створити новий чат» (`/chat/create`) і «Додатися в чат» (`/chat/join`), кнопка налаштувань ліворуч вгорі (`/profile`). `chat/create.tsx` і `chat/join.tsx` — заглушки («ще в розробці»).
+**Чат (клієнт):** `app/src/app/mychat.tsx`, маршрут `/mychat`. Підключається до `CHAT_HUB_URL` (`src/api/config.ts`), слухає подію `Send`, викликає `Send`. Стан з'єднання показується в шапці (`connecting`, `connected`, `disconnected`). Повідомлення відображаються від нових до старих у `FlatList` з `inverted`. Після входу і реєстрації користувач потрапляє на `/chat/home`. Звідти — кнопка налаштувань (`/profile`). На `profile.tsx` є «← Назад до чату» (`router.replace("/chat/home")`) і «Перейти в чат» (`router.replace("/mychat")`). На `mychat.tsx` кнопки повернення немає. Клієнт досі підключений до `/chat`; `MyChatHub` на `/hub/chat` клієнтом ще не використовується. Екран `app/src/app/chat/home.tsx` — головна чату: картка користувача з Redux (фото, ім'я, email), привітання, кнопки «Створити новий чат» (`/chat/create`) і «Додатися в чат» (`/chat/join`), кнопка налаштувань ліворуч вгорі (`/profile`). `chat/create.tsx` при монтуванні викликає `useGetChatTypesQuery` і `useSearchChatUsersQuery`, мутація `useCreateChatMutation` підключена, але UI ще заглушка («ще в розробці»). `chat/join.tsx` — заглушка без запитів.
 
 ### 4.2 Бекенд
 
@@ -300,7 +300,7 @@ API має ще одне вихідне з'єднання: SMTP-сервер `sm
 | SignalR | `/chat` | — | виклик `Send(string)`, подія `Send(string)` | повідомлення розсилаються всім клієнтам (`ChatHub`) |
 | SignalR | `/hub/chat` | — (`[Authorize]` немає) | `JoinChat(chatId)`, `SendMessage({ ChatId, Message })`, `LeaveChat(chatId)`; подія `ReceiveMessage` | повідомлення зберігаються в БД і розсилаються учасникам групи `chat-{id}` (`MyChatHub`) |
 
-Відомі відхилення: `erroor` (помилка в назві ключа при реєстрації); `Register` використовується і для збереження профілю з `profile.tsx`; `Login` повертає 401 для невірних даних, а клієнт обробляє і 400, і 401. Клієнт поки не викликає `/api/Chats` і `/hub/chat`.
+Відомі відхилення: `erroor` (помилка в назві ключа при реєстрації); `Register` використовується і для збереження профілю з `profile.tsx`; `Login` повертає 401 для невірних даних, а клієнт обробляє і 400, і 401. Клієнт викликає `GET /api/Chats/types` і `GET /api/Chats/users` з `chat/create.tsx` (при монтуванні); решта ендпоінтів `/api/Chats` оголошена в `chatApiSlice.ts`, але ще не викликається. `/hub/chat` клієнтом не використовується.
 
 ---
 
@@ -340,7 +340,7 @@ API має ще одне вихідне з'єднання: SMTP-сервер `sm
 | 28 | **Секрет invite-токенів зашитий у коді** | `Services/InviteTokenService.cs` (`Secret = "SUPER_SECRET_KEY_CHANGE_ME"`) | Будь-хто з доступом до репо може підробити invite-токен. Сервіс без інтерфейсу, не в DI, без терміну дії. `Validate` ще ніде не використовується | Секрет у конфіг/env, `IInviteTokenService` з DI, термін дії в токені |
 | 29 | **Список усіх користувачів без обмежень** | `ChatsController.GetUsers` → `ChatService.GetAllUsersAsync` | Будь-який автентифікований користувач бачить `Id` і ПІБ усіх користувачів (порожній пошук повертає всіх) | Мінімальна довжина запиту, ліміт результатів, пошук лише по контактах |
 | 30 | **Invite-посилання зі схемою `my-android://`** | `ChatsController.GenerateInvite` | Схема (назва з Android-шаблону) не перевірена на відповідність клієнту `app/`; прийом запрошення ще не реалізовано (`chat/join.tsx` — заглушка) | Узгодити схему з клієнтом, реалізувати прийом у `app/` |
-| 31 | **`IHttpContextAccessor` не зареєстровано (висока, додано пізніше)** | `Program.cs` (немає `AddHttpContextAccessor()`), `IdentityService` | `IdentityService` вимагає `IHttpContextAccessor`, а `ChatService` і `ChatsController` залежать від `IdentityService`. Очікується помилка DI при створенні контролера: усі `/api/Chats/*` повертатимуть 500. Перевірити запуском | Додати `builder.Services.AddHttpContextAccessor()` у `Program.cs` і покрити тестом |
+| 31 | **`IHttpContextAccessor` не зареєстровано (висока, додано пізніше)** | `Program.cs` (немає `AddHttpContextAccessor()`), `IdentityService` | `IdentityService` вимагає `IHttpContextAccessor`, а `ChatService` і `ChatsController` залежать від `IdentityService`. Очікується помилка DI при створенні контролера: усі `/api/Chats/*` повертатимуть 500. Станом на 2026-11-18 реєстрації в `Program.cs` немає (перевірено по коду). Клієнт уже викликає `/api/Chats/types` і `/users` з `chat/create.tsx`, тож збій видно на екрані створення. Перевірити запуском | Додати `builder.Services.AddHttpContextAccessor()` у `Program.cs` і покрити тестом |
 
 Рядок #31 додано після сортування; решта рядків відсортовані за серйозністю.
 

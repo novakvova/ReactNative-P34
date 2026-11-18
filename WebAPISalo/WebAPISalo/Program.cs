@@ -186,8 +186,8 @@ static async Task SeedIdentityAsync(WebApplication app)
     // 2. Користувачі: (email, пароль, роль)
     var users = new[]
     {
-        (Email: "admin@gmail.com", Password: "Admin123", Role: Roles.Admin),
-        (Email: "user@gmail.com",  Password: "User123",  Role: Roles.User),
+        (Email: "admin@gmail.com", LastName:"Войтович", FirstName: "Дмитро", Password: "Admin123", Role: Roles.Admin),
+        (Email: "user@gmail.com", LastName:"Мельник", FirstName: "Вероніка",  Password: "User123",  Role: Roles.User),
     };
 
     if (!db.Users.Any())
@@ -197,6 +197,8 @@ static async Task SeedIdentityAsync(WebApplication app)
 
             var user = new UserEntity
             {
+                LastName = u.LastName,
+                FirstName = u.FirstName,
                 UserName = u.Email,
                 Email = u.Email,
                 EmailConfirmed = true
