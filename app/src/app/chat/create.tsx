@@ -1,11 +1,13 @@
 import {Pressable, Text, View} from "react-native";
 import {router} from "expo-router";
-import {useGetChatTypesQuery, useSearchChatUsersQuery} from "@/api/chatApiSlice";
+import {useCreateChatMutation, useGetChatTypesQuery, useSearchChatUsersQuery} from "@/api/chatApiSlice";
 
 // Заглушка: створення чату ще не реалізоване
 const CreateChatScreen = () => {
     const {data: chatTypes} = useGetChatTypesQuery();
     const {data: users} = useSearchChatUsersQuery({});
+
+    const [createChat, {isLoading}] = useCreateChatMutation();
 
     // console.log("Get all chats types", chatTypes);
     // console.log("Get all users", users);
