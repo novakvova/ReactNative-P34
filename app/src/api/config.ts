@@ -4,3 +4,6 @@ export const API_BASE_URL = "https://salo.itstep.click";
 
 // SignalR-хаб чату
 export const CHAT_HUB_URL = `${API_BASE_URL}/chat`;
+
+// SignalR-хаб з автентифікацією (MyChatHub): JoinChat, SendMessage, LeaveChat
+export const MY_CHAT_HUB_URL = `${API_BASE_URL}/hub/chat`;
