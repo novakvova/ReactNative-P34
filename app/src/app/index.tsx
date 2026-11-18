@@ -8,7 +8,7 @@ export default function HomeScreen() {
   const { user } = useAppSelector(x=>x.auth)
 
   if (user)
-    return <Redirect href="/profile" />
+    return <Redirect href="/chat/home" />
 
   return <Redirect href="/login"/>
 
